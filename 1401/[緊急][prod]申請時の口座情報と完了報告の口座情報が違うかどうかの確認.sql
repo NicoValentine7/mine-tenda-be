@@ -1,12 +1,19 @@
+-- 目的: 申請時の口座情報と完了報告の口座情報が違うかどうかの確認
+
+-- 完了報告のapply_numbers.phase_idは'01J2BJNG0C2DJKXHQ35MCKP8ZS'？(STGでの確認)
+-- fix~apply_dataは完了報告のデータ
+--
+
 -- 交付申請と、完了報告の銀行関連データを取得
 SELECT
     an.delivering_apply_no,
     an.phase_id,
     ai.param_name,
+    p.phase,
     MAX(ad.value) AS value
 FROM apply_numbers an
-INNER JOIN apply_accounts aa ON aa.id = an.account_id
 LEFT JOIN apply_data ad ON an.id = ad.apply_number_id
+LEFT JOIN phases p ON an.phase_id = p.category_id
 INNER JOIN apply_items ai ON ad.item_id = ai.id
 WHERE ai.param_name IN (
     'transferDestinationAccountInformationName',
@@ -16,7 +23,7 @@ WHERE ai.param_name IN (
     'transferDestinationAccountInformationMeigi',
     'transferDestinationAccountInformationInstitutionName',
     'transferDestinationAccountInformationBranchName',
-    'transferDestinationAccountInformationNumber',
+    'transferDestinationAccountInformationNumber'
     'fixTransferDestinationAccountInformationName',
     'fixTransferDestinationAccountInformationCode',
     'fixTransferDestinationAccountInformationBranchCode',
@@ -27,35 +34,14 @@ WHERE ai.param_name IN (
     'fixTransferDestinationAccountInformationNumber'
 )
 AND
-an.delivering_apply_no = 'K000281068'
-GROUP BY an.delivering_apply_no, an.phase_id
+an.delivering_apply_no IN(
+    'K000000986',
+    'K000005750'
+)
+-- AND
+-- p.phase = '完了報告'
+GROUP BY an.delivering_apply_no, an.phase_id, ai.param_name
 ORDER BY an.delivering_apply_no DESC;
 
--- 全てのan.delivering_apply_noを取得
-SELECT SUM(an.delivering_apply_no), an.delivering_apply_no FROM apply_numbers an;
-
--- fix~prefixがついたapply_dataのphase_idが全て同一であるかを確認する
--- Result: 全てのfix~prefixのapply_dataのphase_idは同一である
-SELECT
-    an.delivering_apply_no,
-    ai.param_name,
-    ad.value,
-    MIN(an.phase_id) AS min_phase_id,
-    MAX(an.phase_id) AS max_phase_id,
-    CASE
-        WHEN COUNT(DISTINCT an.phase_id) - 1 = 0 THEN '同一'
-        ELSE '異なる'
-    END AS phase_id_status,
-    COUNT(DISTINCT an.phase_id) - 1 AS '異なる phase_id の数'
-FROM
-    apply_numbers an
-INNER JOIN
-    apply_data ad ON an.id = ad.apply_number_id
-INNER JOIN
-    apply_items ai ON ad.item_id = ai.id
-WHERE
-    ai.param_name LIKE 'fixTransferDestinationAccountInformation%'
-GROUP BY
-    an.delivering_apply_no
-ORDER BY
-    an.delivering_apply_no;
+-- phase
+SELECT * FROM phases;
