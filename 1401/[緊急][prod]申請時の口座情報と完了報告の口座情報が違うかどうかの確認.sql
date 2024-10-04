@@ -7,13 +7,12 @@
 -- 交付申請と、完了報告の銀行関連データを取得
 SELECT
     an.delivering_apply_no,
-    an.phase_id,
     ai.param_name,
     p.phase,
     MAX(ad.value) AS value
 FROM apply_numbers an
 LEFT JOIN apply_data ad ON an.id = ad.apply_number_id
-LEFT JOIN phases p ON an.phase_id = p.category_id
+LEFT JOIN phases p ON an.phase_id = p.id
 INNER JOIN apply_items ai ON ad.item_id = ai.id
 WHERE ai.param_name IN (
     'transferDestinationAccountInformationName',
@@ -38,10 +37,5 @@ an.delivering_apply_no IN(
     'K000000986',
     'K000005750'
 )
--- AND
--- p.phase = '完了報告'
-GROUP BY an.delivering_apply_no, an.phase_id, ai.param_name
+GROUP BY an.delivering_apply_no, ai.param_name
 ORDER BY an.delivering_apply_no DESC;
-
--- phase
-SELECT * FROM phases;
